@@ -1,0 +1,6 @@
+name: ChatBubble
+version: "1.0.5"
+author: "若水"
+api: ["1.0.8"]
+main: Bubble.Chat
+load: POSTWORLD
