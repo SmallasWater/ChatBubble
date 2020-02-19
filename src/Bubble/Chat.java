@@ -2,7 +2,6 @@ package Bubble;
 
 import Bubble.Task.TextEntity;
 import Bubble.Task.runTime;
-import Bubble.Task.showMessage;
 import cn.nukkit.Player;
 import cn.nukkit.Server;
 import cn.nukkit.entity.Entity;
@@ -23,9 +22,10 @@ import java.util.LinkedHashMap;
 * */
 public class Chat extends PluginBase implements Listener {
 
-    public static LinkedHashMap<Player, String> chatMessage = new LinkedHashMap<>();
-    public static LinkedHashMap<Player, Integer> loadTime = new LinkedHashMap<>();
-    public static LinkedHashMap<Player, String> Tag = new LinkedHashMap<>();
+
+
+    public LinkedHashMap<Player, TextEntity> text = new LinkedHashMap<>();
+    public LinkedHashMap<Player, Integer> loadTime = new LinkedHashMap<>();
     private static Chat chat;
 
     @Override
@@ -39,9 +39,9 @@ public class Chat extends PluginBase implements Listener {
         this.getServer().getPluginManager().registerEvents(this, this);
         this.getServer().getScheduler().scheduleDelayedTask(this,()->
                 this.getServer().getScheduler().scheduleAsyncTask(this, new AsyncTask() {
+                    @Override
                     public void onRun() {
                         Server.getInstance().getLogger().info("Task Start....");
-                        Server.getInstance().getScheduler().scheduleRepeatingTask(new showMessage(),2);
                         Server.getInstance().getScheduler().scheduleRepeatingTask(new runTime(),20);
                     }
                 }), 40);
@@ -58,19 +58,19 @@ public class Chat extends PluginBase implements Listener {
     private static String chatMessage(@NotNull String message) {
 
         StringBuilder chatMessage = new StringBuilder("");
-        int Length = (message.length() % 12) > 0 ? message.length() / 12 + 1 : message.length() / 12;
+        int length = (message.length() % 12) > 0 ? message.length() / 12 + 1 : message.length() / 12;
         StringBuilder line = new StringBuilder("§l╭─");
         for (int i = 0; i < 8; i++) {
             line.append("──");
         }
-        int Line = getTrueLength(line.toString()) - 3;
+        int l = getTrueLength(line.toString()) - 3;
         line.append("╮");
         StringBuilder lineEnd = new StringBuilder("");
         StringBuilder builder = new StringBuilder("");
-        for (int i = 0; i < Length; i++) {
+        for (int i = 0; i < length; i++) {
             String split;
             if (message.length() < (i * 12 + 12)) {
-                split = message.substring(i * 12, message.length());
+                split = message.substring(i * 12);
             } else {
                 split = message.substring(i * 12, i * 12 + 12);
             }
@@ -78,19 +78,19 @@ public class Chat extends PluginBase implements Listener {
             int adds = getEnglishLength(split) + (addK * 2);
             String chinese = "[\u4e00-\u9fa5]";
             if (split.substring(0,1).matches(chinese)) {
-                builder.append("§│§r §e");
+                builder.append("§r│§r §e");
             } else {
-                builder.append("§l│§r   §e");
+                builder.append("§r│§r   §e");
             }
             builder.append(split);
-            for (int c = 0; c < Line - adds + 2; c++) {
+            for (int c = 0; c < l - adds + 2; c++) {
                 if (split.substring(split.length() - 1).matches(chinese) || addK > getEnglishLength(split)) {
                     builder.append(" ");
                 } else {
                     builder.append(" ");
                 }
             }
-            builder.append("§r§l|").append("\n");
+            builder.append("§r|").append("\n");
         }
         lineEnd.append("§r§l");
         for (int a = 0; a < 13; a++) {
@@ -133,22 +133,42 @@ public class Chat extends PluginBase implements Listener {
     }
 
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onChat(PlayerChatEvent event){
         Player player = event.getPlayer();
-        chatMessage.put(player,chatMessage(event.getMessage()));
         loadTime.put(player,3);
-        if(!Tag.containsKey(player))
-            Tag.put(player,player.getNameTag());
+        if(!text.containsKey(player)){
+            TextEntity entity = new TextEntity(player.getChunk(),Entity.getDefaultNBT(player),player,
+                    chatMessage(event.getMessage())){
+                @Override
+                public float getWidth() {
+                    return player.getWidth();
+                }
+
+                @Override
+                public float getHeight() {
+                    return player.getHeight();
+                }
+            };
+            text.put(player,entity);
+            entity.spawnToAll();
+        }else{
+            TextEntity entity = text.get(player);
+            entity.setText( chatMessage(event.getMessage()));
+        }
+
     }
 
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event){
         Player player = event.getPlayer();
-        chatMessage.remove(player);
+        Chat.getChat().loadTime.remove(player);
+        if(Chat.getChat().text.containsKey(player)){
+            TextEntity entity = Chat.getChat().text.get(player);
+            entity.kill();
+            Chat.getChat().text.remove(player);
+        }
     }
-
-
 }
 

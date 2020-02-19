@@ -10,11 +10,15 @@ public class runTime extends Task{
     @Override
     public void onRun(int i) {
         for (Player player: Server.getInstance().getOnlinePlayers().values()) {
-            if(Chat.loadTime.containsKey(player)){
-                if(Chat.loadTime.get(player) > 0)
-                    Chat.loadTime.put(player,Chat.loadTime.get(player) - 1);
-                else
-                    Chat.loadTime.remove(player);
+            if(Chat.getChat().loadTime.containsKey(player)){
+                if(Chat.getChat().loadTime.get(player) > 0) {
+                    Chat.getChat().loadTime.put(player,Chat.getChat().loadTime.get(player) - 1);
+                } else {
+                    Chat.getChat().loadTime.remove(player);
+                    TextEntity entity = Chat.getChat().text.get(player);
+                    entity.kill();
+                    Chat.getChat().text.remove(player);
+                }
             }
         }
     }
